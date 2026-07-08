@@ -1,4 +1,4 @@
-# Pomodoro
+# Ashdoro
 
 A simple Pomodoro timer CLI written in Rust.
 
