@@ -31,7 +31,7 @@ impl Pomodoro {
     fn start(settings: Args) -> Pomodoro {
         Pomodoro {
             phase: Phase::Work,
-            time: settings.work,
+            time: settings.work * 60,
             streak: 0,
             settings,
         }
@@ -46,7 +46,7 @@ impl Pomodoro {
         match self.phase {
             Phase::Work => {
                 self.phase = Phase::Rest;
-                self.time = self.settings.rest;
+                self.time = self.settings.rest * 60;
                 self.streak += 1;
 
                 if self.streak == self.settings.sessions {
@@ -56,7 +56,7 @@ impl Pomodoro {
 
             Phase::Rest => {
                 self.phase = Phase::Work;
-                self.time = self.settings.work;
+                self.time = self.settings.work * 60;
             }
         }
 
@@ -71,13 +71,17 @@ impl Pomodoro {
     }
 }
 
+fn format_time(secs: u32) -> String {
+    format!("{:02}:{:02}", secs / 60, secs % 60)
+}
+
 fn main() {
     let args = Args::parse();
     let mut pomodoro = Pomodoro::start(args);
     let mut time = pomodoro.time;
 
     loop {
-        println!("{}", time);
+        println!("{}", format_time(time));
         time = pomodoro.decrement();
         
         if time == 0 {
