@@ -1,6 +1,13 @@
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::{thread::sleep, time::Duration};
 
 use clap::Parser;
+
+mod pomodoro;
+mod renderer;
+
+use crate::pomodoro::{Pomodoro, Settings};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -15,82 +22,36 @@ struct Args {
     sessions: u8,
 }
 
-enum Phase {
-    Work,
-    Rest,
-}
-
-struct Pomodoro {
-    phase: Phase,
-    time: u32,
-    streak: u8,
-    settings: Args,
-}
-
-impl Pomodoro {
-    fn start(settings: Args) -> Pomodoro {
-        Pomodoro {
-            phase: Phase::Work,
-            time: settings.work * 60,
-            streak: 0,
-            settings,
-        }
-    }
-
-    fn decrement(&mut self) -> u32 {
-        self.time -= 1;
-        self.time
-    }
-
-    fn next(&mut self) -> bool {
-        match self.phase {
-            Phase::Work => {
-                self.phase = Phase::Rest;
-                self.time = self.settings.rest * 60;
-                self.streak += 1;
-
-                if self.streak == self.settings.sessions {
-                    return true;
-                }
-            }
-
-            Phase::Rest => {
-                self.phase = Phase::Work;
-                self.time = self.settings.work * 60;
-            }
-        }
-
-        false
-    }
-
-    fn session(&self) -> &str {
-        match self.phase {
-            Phase::Work => "Work",
-            Phase::Rest => "Rest",
-        }
-    }
-}
-
-fn format_time(secs: u32) -> String {
-    format!("{:02}:{:02}", secs / 60, secs % 60)
-}
-
 fn main() {
     let args = Args::parse();
-    let mut pomodoro = Pomodoro::start(args);
-    let mut time = pomodoro.time;
+    let mut pomodoro = Pomodoro::start(
+        Settings::new(args.work, args.rest, args.sessions)
+    );
 
-    loop {
-        println!("{}", format_time(time));
-        time = pomodoro.decrement();
-        
-        if time == 0 {
-            println!("{} session done!", pomodoro.session());
-            if pomodoro.next() { break; }
-        }
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
 
+    ctrlc::set_handler(move || {
+        r.store(false, Ordering::SeqCst);
+    })
+    .expect("Error setting Ctrl-C handler");
+
+    while running.load(Ordering::SeqCst) {
+        renderer::tick(pomodoro.remaining_time());
         sleep(Duration::from_secs(1));
+        
+        pomodoro.decrement();
+        
+        if pomodoro.is_done() {
+            renderer::phase_done(pomodoro.phase());
+            if !pomodoro.next() {
+                renderer::session_done(pomodoro.sessions());
+                return;
+            }
+            
+            sleep(Duration::from_secs(1));
+        }
     }
 
-    println!("Session done! One more productive day completed, nice work! (:");
+    renderer::session_interrupted(pomodoro.streak());
 }
