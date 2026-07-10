@@ -25,6 +25,10 @@ struct Args {
     /// Number of work sessions before finishing
     #[arg(long)]
     sessions: Option<u8>,
+
+    /// Print the current config file and exit
+    #[arg(long)]
+    config: bool,
 }
 
 #[derive(serde::Deserialize, Default)]
@@ -57,6 +61,14 @@ fn main() {
     let config_path = dirs::config_dir().unwrap().join("ashdoro.toml");
     
     let args = Args::parse();
+    if args.config {
+        match std::fs::read_to_string(&config_path) {
+            Ok(contents) => println!("{}", contents),
+            Err(_) => println!("No config file found at {}", config_path.display()),
+        }
+        return;
+    }
+    
     let config = load_config(config_path.as_path());
     
     let work = args.work.or(config.work).unwrap_or(25);
