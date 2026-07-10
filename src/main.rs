@@ -14,12 +14,15 @@ use crate::pomodoro::{Pomodoro, Settings};
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// Work session length in minutes
     #[arg(long)]
     work: Option<u32>,
 
+    /// Rest session length in minutes
     #[arg(long)]
     rest: Option<u32>,
 
+    /// Number of work sessions before finishing
     #[arg(long)]
     sessions: Option<u8>,
 }
