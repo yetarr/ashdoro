@@ -8,6 +8,13 @@ A simple Pomodoro timer CLI written in Rust.
 cargo run -- --work 25 --rest 5 --sessions 4
 ```
 
+If the no arguments are provided, the values on the ashdoro.toml file will be used.
+
+Default Values:
+  -Work: 25
+  -Rest 5
+  -Sessions: 4
+
 ## Options
 
 | Flag         | Description                               | Default |
